@@ -1,5 +1,5 @@
 # recomlive
-Recom.live — a real-time recommendation system
+Recom.live — the real-time recommendation system
 
 ```
 ./server.py start
