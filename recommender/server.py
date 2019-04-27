@@ -77,7 +77,7 @@ class Server():
 
     def dispatch(self, message):
         if self.queue.qsize() >= self.queue_limit:
-            message.response(bytes('QFULL', 'ascii'))
+            message.response(self._pack_response('QFULL'))
         else:
             self.queue.put(message)
 
@@ -90,19 +90,23 @@ class Server():
                     self.recommender.record(did, pid)
                 elif method == 'RECM':
                     recs = self.recommender.recommend(did, pid)
-                    message.response(bytes(','.join(recs), 'ascii'))
+                    message.response(self._pack_response('OK', recs))
                 elif method == 'RR':
                     self.recommender.record(did, pid)
                     recs = self.recommender.recommend(did, pid)
-                    message.response(bytes(','.join(recs), 'ascii'))
+                    message.response(self._pack_response('OK', recs))
                 elif method == 'PH':
                     dids = self.recommender.person_history(pid)
-                    message.response(bytes(','.join(dids), 'ascii'))
+                    message.response(self._pack_response('OK', dids))
                 else:
                     raise Exception
             except:
-                message.response(bytes('BADMSG', 'ascii'))
+                message.response(self._pack_response('BADMSG'))
 
             self.queue.task_done()
+
+    def _pack_response(self, status, data = []):
+        return bytes(','.join([status] + data), 'ascii')
+
 
 
