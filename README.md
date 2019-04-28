@@ -1,7 +1,7 @@
 # Recom.live — the real-time recommendation system
 This is the core of the recommendation system, wrapped with UDP server daemon, having very simple RPC protocol.
 
-## To set up Recom.live server directly onto your physical machine use:
+To set up Recom.live server directly onto your physical machine use:
 ```
 git clone https://github.com/grinya007/recomlive.git
 cd recomlive
