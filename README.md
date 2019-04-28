@@ -21,7 +21,7 @@ Let's assume you have a news website, where recommendations block below articles
 
 ## How does it work?
 ### ARC
-Every document_id and person_id are kept in two separate instances of ARC cache class. In addition to the usual functionality of the cache the particular implementation used in Recom.live assignes a unique ID to each cached item. These IDs are taken from the range of 0 to N - 1 where N is the maximum number of cached items so that IDs are being reused with time. In the Recommender class, documents and persons are kept as a matrix where these cache IDs are used as respective indexes. So, when a new document or person comes in and the cache algorithm replaces some outdated item the ID of the latter is reused and the corresponding row (document) or column (person) in the matrix is reinitialized with zeros.
+Every document_id and person_id are kept in two separate instances of ARC cache class. In addition to the usual functionality of the cache the particular implementation used in Recom.live assigns a unique ID to each cached item. These IDs are taken from the range of 0 to N - 1 where N is the maximum number of cached items so that IDs are being reused with time. In the Recommender class, documents and persons are kept as a matrix where these cache IDs are used as respective indexes. So, when a new document or person comes in and the cache algorithm replaces some outdated item the ID of the latter is reused and the corresponding row (document) or column (person) in the matrix is reinitialized with zeros.
 
 ### TFIDF
 The weight for the pair of document/person is calculated as follows: 
