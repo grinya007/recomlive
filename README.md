@@ -7,7 +7,7 @@ git clone https://github.com/grinya007/recomlive.git
 cd recomlive
 ./server.py start
 ```
-Although, I would encourage you to use [Recom.live docker image](https://github.com/grinya007/recomlive-docker). 
+Although, I would encourage you to use [Recom.live docker image](https://github.com/grinya007/recomlive-docker), there you'll find a more detailed installation guide and usage examples. 
 
 After the server is set up, you can use [Recom.live client](https://github.com/grinya007/recomlive-client) library to interact with the server.
 
