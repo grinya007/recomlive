@@ -43,7 +43,7 @@ class Recommender(object):
                 inputs[0][prev_doc_res.idx] = 1
                 inputs[1][doc_res.idx] = 1
                 loss, prs_res.value.lstm_h, prs_res.value.lstm_C = self.lstm.fit(
-                    inputs, prs_res.value.lstm_h, prs_res.value.lstm_C
+                    inputs, prs_res.value.lstm_h, prs_res.value.lstm_C, lr = 0.2/len(prs_res.value.history)
                 )
 
     def recommend(self, document_id, person_id = None):
@@ -70,7 +70,7 @@ class Recommender(object):
 
         recs = []
         for (i, w) in r:
-            if w < 0.025:
+            if w < 0.015:
                 break
 
             if i == doc_res.idx:
