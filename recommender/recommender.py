@@ -17,7 +17,7 @@ class Recommender(object):
         self.documents_cache = Cache(documents_n)
         self.persons_cache   = Cache(persons_n)
         self.recs_limit      = recs_limit
-        self.lstm            = LSTM(documents_n, int(documents_n * 0.5))
+        self.lstm            = LSTM(documents_n, int(documents_n * 0.75))
         self.losses          = []
         self.losses_length   = 50
 
@@ -70,7 +70,7 @@ class Recommender(object):
 
         recs = []
         for (i, w) in r:
-            if w < 0.01:
+            if w < 0.15:
                 break
 
             if i == doc_res.idx:
