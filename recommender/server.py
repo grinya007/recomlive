@@ -26,8 +26,7 @@ class Server():
             queue_limit,
             documents_n,
             persons_n,
-            recs_limit,
-            invalidate_after):
+            recs_limit):
         self.host               = host
         self.port               = port
         self.logfile            = logfile
@@ -36,7 +35,6 @@ class Server():
         self.documents_n        = documents_n
         self.persons_n          = persons_n
         self.recs_limit         = recs_limit
-        self.invalidate_after   = invalidate_after
         self.chkdir(logfile)
         self.chkdir(pidfile)
         self.logfile_fh         = open(logfile, 'a')
@@ -58,7 +56,6 @@ class Server():
         return Recommender(
                 self.documents_n,
                 self.persons_n,
-                self.invalidate_after,
                 self.recs_limit)
 
     def chkdir(self, sfile):
