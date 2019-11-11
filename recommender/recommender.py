@@ -70,9 +70,6 @@ class Recommender(object):
 
         recs = []
         for (i, w) in r:
-            if w < 0.01:
-                break
-
             if i == doc_res.idx:
                 continue
 
