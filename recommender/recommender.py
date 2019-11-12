@@ -18,7 +18,7 @@ class Recommender(object):
         self.documents_cache = Cache(documents_n)
         self.persons_cache   = Cache(persons_n)
         self.recs_limit      = recs_limit
-        self.lstm            = LSTM(documents_n, int(documents_n * 0.15))
+        self.lstm            = LSTM(documents_n, int(documents_n * 0.25))
         self.losses          = []
         self.losses_length   = 50
 
@@ -36,17 +36,25 @@ class Recommender(object):
         new_prs = lambda: Person(person_id, max(self.documents_n / 10, 10))
         prs_res = self.persons_cache.get_replace(person_id, new_prs)
 
-        prev_visit = prs_res.value.set_next_visit(document_id)
-        if prev_visit != None:
-            prev_doc_res = self.documents_cache.get_by_key(prev_visit.document_id)
-            if prev_doc_res != None and prev_doc_res.idx != doc_res.idx:
-                inputs = np.zeros((2, self.documents_n))
-                inputs[0][prev_doc_res.idx] = 1
-                inputs[1][doc_res.idx] = 1
+        prs_res.value.append_history(document_id)
+        unlearned = prs_res.value.unlearned_docs()
+        if len(unlearned) >= 4:
+            prs_res.value.mark_learned(unlearned)
+            inputs = []
+            for document_id in reversed(unlearned):
+                doc_res = self.documents_cache.get_by_key(document_id)
+                if doc_res != None:
+                    inputs.append(np.zeros(self.documents_n))
+                    inputs[-1][doc_res.idx] = 1
+            if len(inputs) >= 2:
                 loss, prs_res.value.lstm_h, prs_res.value.lstm_C = self.lstm.fit(
-                    inputs, prs_res.value.lstm_h, prs_res.value.lstm_C, lr = 0.25/(1 + log(len(prs_res.value.history)))
+                    np.array(inputs), prs_res.value.lstm_h, prs_res.value.lstm_C, lr = 0.2/len(prs_res.value.history)
                 )
-                print(loss, flush=True)
+                self.losses.append(loss[0][0])
+                if len(self.losses) >= self.losses_length:
+                    print(np.average(self.losses), flush=True)
+                    self.losses = []
+
 
     def recommend(self, document_id, person_id = None):
         doc_res = self.documents_cache.get_by_key(document_id)
@@ -94,7 +102,6 @@ class Document(object):
         self.id = did
 
 
-PrevVisit = namedtuple('PrevVisit', 'document_id, is_first')
 class Person(object):
     def __init__(self, pid, history_max_length):
         self.id = pid
@@ -103,14 +110,23 @@ class Person(object):
         self.lstm_h = None
         self.lstm_C = None
 
-    def set_next_visit(self, document_id):
+    def append_history(self, document_id):
         if len(self.history) == self.history_max_length:
             self.history.pop()
         if len(self.history) == 0 or self.history[-1][0] != document_id:
-            self.history.appendleft(document_id, True)
-        if len(self.history) == 1:
-            return None
-        prev = self.history[-2]
-        return PrevVisit(prev[0], len(self.history) == 2)
+            self.history.appendleft(document_id, False)
+    
+    def unlearned_docs(self):
+        doc_ids = []
+        for doc_id in self.history:
+            if self.history.od[doc_id]:
+                break
+            doc_ids.append(doc_id)
+        return doc_ids
+
+    def mark_learned(self, doc_ids):
+        for doc_id in doc_ids:
+            if doc_id in self.history:
+                self.history.od[doc_id] = True
 
 
