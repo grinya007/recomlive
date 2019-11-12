@@ -3,7 +3,7 @@ from daemon import Daemon, Socket
 from threading import Thread
 from queue import Queue
 
-import os, time
+import os, time, sys
 
 def lazyprop(fn):
     attr_name = '_lazy_' + fn.__name__
@@ -37,7 +37,6 @@ class Server():
         self.recs_limit         = recs_limit
         self.chkdir(logfile)
         self.chkdir(pidfile)
-        self.logfile_fh         = open(logfile, 'a')
 
     @lazyprop
     def daemon(self):
@@ -67,6 +66,7 @@ class Server():
         return self.daemon.command(cmd)
 
     def onstart(self):
+        sys.stdout = open(self.logfile, 'a')
         self.thread = Thread(target=self.dispatcher)
         self.thread.start()
         self.socket.listen()

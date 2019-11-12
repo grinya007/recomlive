@@ -18,7 +18,7 @@ class Recommender(object):
         self.documents_cache = Cache(documents_n)
         self.persons_cache   = Cache(persons_n)
         self.recs_limit      = recs_limit
-        self.lstm            = LSTM(documents_n, int(documents_n * 0.125))
+        self.lstm            = LSTM(documents_n, int(documents_n * 0.15))
         self.losses          = []
         self.losses_length   = 50
 
@@ -44,8 +44,9 @@ class Recommender(object):
                 inputs[0][prev_doc_res.idx] = 1
                 inputs[1][doc_res.idx] = 1
                 loss, prs_res.value.lstm_h, prs_res.value.lstm_C = self.lstm.fit(
-                    inputs, prs_res.value.lstm_h, prs_res.value.lstm_C, lr = 0.15/(1 + log(len(prs_res.value.history)))
+                    inputs, prs_res.value.lstm_h, prs_res.value.lstm_C, lr = 0.25/(1 + log(len(prs_res.value.history)))
                 )
+                print(loss, flush=True)
 
     def recommend(self, document_id, person_id = None):
         doc_res = self.documents_cache.get_by_key(document_id)
