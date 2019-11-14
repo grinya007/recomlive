@@ -10,7 +10,7 @@ class LSTM(nn.Module):
             embedding_size,
             hidden_size,
             device = torch.device('cuda'),
-            lr = 0.001
+            lr = 0.1
     ):
         super(LSTM, self).__init__()
         self.device      = device
@@ -31,8 +31,8 @@ class LSTM(nn.Module):
     
     def zero_state(self, batch_size):
         return (
-            torch.zeros(1, batch_size, self.hidden_size).to(self.device),
-            torch.zeros(1, batch_size, self.hidden_size).to(self.device),
+            torch.zeros(1, batch_size, self.hidden_size).to(self.device).requires_grad_(),
+            torch.zeros(1, batch_size, self.hidden_size).to(self.device).requires_grad_(),
         )
     
     def fit(self, x, h = None):
@@ -41,14 +41,14 @@ class LSTM(nn.Module):
             h = self.zero_state(batch_size)
         elif (h[0].shape[1] > batch_size):
             h = (
-                h[0][:, -batch_size:],
-                h[1][:, -batch_size:],
+                h[0][:, -batch_size:].requires_grad_(),
+                h[1][:, -batch_size:].requires_grad_(),
             )
         elif (h[0].shape[1] < batch_size):
             h_zero = self.zero_state(batch_size - h[0].shape[1])
             h = (
-                torch.cat((h[0], h_zero[0]), dim=1),
-                torch.cat((h[1], h_zero[1]), dim=1),
+                torch.cat((h[0], h_zero[0]), dim=1).requires_grad_(),
+                torch.cat((h[1], h_zero[1]), dim=1).requires_grad_(),
             )
         
         y = x[1:]
