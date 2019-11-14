@@ -18,7 +18,7 @@ class Recommender(object):
         self.documents_cache = Cache(documents_n)
         self.persons_cache   = Cache(persons_n)
         self.recs_limit      = recs_limit
-        self.lstm            = LSTM(documents_n, int(documents_n * 0.25))
+        self.lstm            = LSTM(documents_n, int(documents_n * 0.5), int(documents_n * 0.3))
         self.losses          = []
         self.losses_length   = 50
 
@@ -38,19 +38,18 @@ class Recommender(object):
 
         prs_res.value.append_history(document_id)
         unlearned = prs_res.value.unlearned_docs()
-        if len(unlearned) >= 4:
+        if len(unlearned) == 2:
             prs_res.value.mark_learned(unlearned)
             inputs = []
             for document_id in reversed(unlearned):
                 doc_res = self.documents_cache.get_by_key(document_id)
                 if doc_res != None:
-                    inputs.append(np.zeros(self.documents_n))
-                    inputs[-1][doc_res.idx] = 1
+                    inputs.append([doc_res.idx])
             if len(inputs) >= 2:
-                loss, prs_res.value.lstm_h, prs_res.value.lstm_C = self.lstm.fit(
-                    np.array(inputs), prs_res.value.lstm_h, prs_res.value.lstm_C, lr = 0.2/len(prs_res.value.history)
+                loss, prs_res.value.lstm_h = self.lstm.fit(
+                    np.array(inputs), prs_res.value.lstm_h
                 )
-                self.losses.append(loss[0][0])
+                self.losses.append(loss)
                 if len(self.losses) >= self.losses_length:
                     print(np.average(self.losses), flush=True)
                     self.losses = []
@@ -62,24 +61,17 @@ class Recommender(object):
             return []
 
         lstm_h = None
-        lstm_C = None
         history = {}
         if person_id != None:
             prs_res = self.persons_cache.get_by_key(person_id)
             if prs_res != None:
                 lstm_h = prs_res.value.lstm_h
-                lstm_C = prs_res.value.lstm_C
                 history = prs_res.value.history
 
-        X = np.zeros(self.documents_n)
-        X[doc_res.idx] = 1
-        r, _, _ = self.lstm.predict(X, lstm_h, lstm_C)
-
-        r = list(enumerate(r.T[0].tolist()))
-        r.sort(key = lambda r: r[1], reverse = True)
+        r, _ = self.lstm.predict(np.array([[doc_res.idx]]), lstm_h)
 
         recs = []
-        for (i, w) in r:
+        for i in r:
             if i == doc_res.idx:
                 continue
 
@@ -108,7 +100,6 @@ class Person(object):
         self.history = Deque()
         self.history_max_length = history_max_length
         self.lstm_h = None
-        self.lstm_C = None
 
     def append_history(self, document_id):
         if len(self.history) == self.history_max_length:
