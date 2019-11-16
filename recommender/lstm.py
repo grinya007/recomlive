@@ -18,7 +18,7 @@ class LSTM(nn.Module):
         self.out        = nn.LogSoftmax(dim = 1)
         
         self.loss       = nn.CrossEntropyLoss()
-        self.optim      = optim.Adagrad(self.parameters(), lr=0.1)
+        self.optim      = optim.Adagrad(self.parameters(), lr=0.05)
         
         self.to(device)
         
@@ -37,6 +37,7 @@ class LSTM(nn.Module):
         lstm_out, h     = self.lstm(embeds.view(len(x), 1, -1), h)
         do              = self.do(lstm_out)
         raw_pred        = self.linear(do.view(len(x), -1))
+        # raw_pred        = self.linear(lstm_out.view(len(x), -1))
         Y               = self.out(raw_pred)
         
         return Y, h
