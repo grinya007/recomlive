@@ -18,7 +18,7 @@ class Recommender(object):
         self.documents_cache = Cache(documents_n)
         self.persons_cache   = Cache(persons_n)
         self.recs_limit      = recs_limit
-        self.lstm            = LSTM(documents_n, int(documents_n * 0.3), int(documents_n * 0.2))
+        self.lstm            = LSTM(documents_n, 256, 128)
         self.losses          = []
         self.losses_length   = 50
 
@@ -39,16 +39,16 @@ class Recommender(object):
         prs_res.value.append_history(document_id)
         unlearned = prs_res.value.unlearned_docs()
         if len(unlearned) == 2:
-            prs_res.value.mark_learned(unlearned)
             inputs = []
             for document_id in reversed(unlearned):
                 doc_res = self.documents_cache.get_by_key(document_id)
                 if doc_res != None:
-                    inputs.append([doc_res.idx])
+                    inputs.append(doc_res.idx)
             if len(inputs) >= 2:
                 loss, prs_res.value.lstm_h = self.lstm.fit(
                     inputs, prs_res.value.lstm_h
                 )
+                prs_res.value.mark_learned(unlearned)
                 self.losses.append(loss)
                 if len(self.losses) >= self.losses_length:
                     print(np.average(self.losses), flush=True)

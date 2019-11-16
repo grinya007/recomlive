@@ -4,7 +4,7 @@ import torch.optim as optim
 
 class LSTM(nn.Module):
 
-    def __init__(self, input_dim, embedding_dim, hidden_dim, device = torch.device('cuda')):
+    def __init__(self, input_dim, embedding_dim, hidden_dim, device = torch.device('cpu')):
         super(__class__, self).__init__()
         
         self.input_dim  = input_dim
@@ -13,11 +13,12 @@ class LSTM(nn.Module):
 
         self.embed      = nn.Embedding(input_dim, embedding_dim)
         self.lstm       = nn.LSTM(embedding_dim, hidden_dim)
+        self.do         = nn.Dropout(0.1)
         self.linear     = nn.Linear(hidden_dim, input_dim)
         self.out        = nn.LogSoftmax(dim = 1)
         
-        self.loss       = nn.MSELoss()
-        self.optim      = optim.SGD(self.parameters(), lr=0.1)
+        self.loss       = nn.CrossEntropyLoss()
+        self.optim      = optim.Adagrad(self.parameters(), lr=0.1)
         
         self.to(device)
         
@@ -34,7 +35,8 @@ class LSTM(nn.Module):
             
         embeds          = self.embed(x)
         lstm_out, h     = self.lstm(embeds.view(len(x), 1, -1), h)
-        raw_pred        = self.linear(lstm_out.view(len(x), -1))
+        do              = self.do(lstm_out)
+        raw_pred        = self.linear(do.view(len(x), -1))
         Y               = self.out(raw_pred)
         
         return Y, h
