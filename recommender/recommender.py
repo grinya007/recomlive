@@ -18,7 +18,7 @@ class Recommender(object):
         self.documents_cache = Cache(documents_n)
         self.persons_cache   = Cache(persons_n)
         self.recs_limit      = recs_limit
-        self.lstm            = LSTM(documents_n, int(documents_n * 0.5), int(documents_n * 0.3))
+        self.lstm            = LSTM(documents_n, int(documents_n * 0.3), int(documents_n * 0.2))
         self.losses          = []
         self.losses_length   = 50
 
@@ -47,7 +47,7 @@ class Recommender(object):
                     inputs.append([doc_res.idx])
             if len(inputs) >= 2:
                 loss, prs_res.value.lstm_h = self.lstm.fit(
-                    np.array(inputs), prs_res.value.lstm_h
+                    inputs, prs_res.value.lstm_h
                 )
                 self.losses.append(loss)
                 if len(self.losses) >= self.losses_length:
@@ -68,7 +68,7 @@ class Recommender(object):
                 lstm_h = prs_res.value.lstm_h
                 history = prs_res.value.history
 
-        r, _ = self.lstm.predict(np.array([[doc_res.idx]]), lstm_h)
+        r, _ = self.lstm.predict(doc_res.idx, lstm_h)
 
         recs = []
         for i in r:
@@ -116,7 +116,7 @@ class Person(object):
         return doc_ids
 
     def mark_learned(self, doc_ids):
-        for doc_id in doc_ids:
+        for doc_id in doc_ids[1:]:
             if doc_id in self.history:
                 self.history.od[doc_id] = True
 

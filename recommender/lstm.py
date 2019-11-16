@@ -1,91 +1,65 @@
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
-import numpy as np
+import torch.optim as optim
 
 class LSTM(nn.Module):
-    def __init__(
-            self,
-            input_size,
-            embedding_size,
-            hidden_size,
-            device = torch.device('cuda'),
-            lr = 0.1
-    ):
-        super(LSTM, self).__init__()
-        self.device      = device
-        self.input_size  = input_size
-        self.hidden_size = hidden_size
-        self.embedding   = nn.Embedding(input_size, embedding_size)
-        self.lstm        = nn.LSTM(embedding_size, hidden_size, batch_first=True)
-        self.dense       = nn.Linear(hidden_size, input_size)
-        self.criterion   = nn.CrossEntropyLoss()
-        self.optimizer   = torch.optim.Adam(self.parameters(), lr=lr)
+
+    def __init__(self, input_dim, embedding_dim, hidden_dim, device = torch.device('cuda')):
+        super(__class__, self).__init__()
+        
+        self.input_dim  = input_dim
+        self.hidden_dim = hidden_dim
+        self.device     = device
+
+        self.embed      = nn.Embedding(input_dim, embedding_dim)
+        self.lstm       = nn.LSTM(embedding_dim, hidden_dim)
+        self.linear     = nn.Linear(hidden_dim, input_dim)
+        self.out        = nn.LogSoftmax(dim = 1)
+        
+        self.loss       = nn.MSELoss()
+        self.optim      = optim.SGD(self.parameters(), lr=0.1)
+        
         self.to(device)
-    
-    def forward(self, x, h):
-        embed     = self.embedding(x)
-        output, h = self.lstm(embed, h)
-        logits    = self.dense(output)
-        return logits, h
-    
-    def zero_state(self, batch_size):
+        
+
+    def _init_hidden(self):
         return (
-            torch.zeros(1, batch_size, self.hidden_size).to(self.device).requires_grad_(),
-            torch.zeros(1, batch_size, self.hidden_size).to(self.device).requires_grad_(),
+            torch.zeros(1, 1, self.hidden_dim, dtype=torch.float, device=self.device),
+            torch.zeros(1, 1, self.hidden_dim, dtype=torch.float, device=self.device)
         )
     
-    def fit(self, x, h = None):
-        batch_size = x.shape[0] - 1
+    def forward(self, x, h = None):
         if isinstance(h, type(None)):
-            h = self.zero_state(batch_size)
-        elif (h[0].shape[1] > batch_size):
-            h = (
-                h[0][:, -batch_size:].requires_grad_(),
-                h[1][:, -batch_size:].requires_grad_(),
-            )
-        elif (h[0].shape[1] < batch_size):
-            h_zero = self.zero_state(batch_size - h[0].shape[1])
-            h = (
-                torch.cat((h[0], h_zero[0]), dim=1).requires_grad_(),
-                torch.cat((h[1], h_zero[1]), dim=1).requires_grad_(),
-            )
+            h = self._init_hidden()
+            
+        embeds          = self.embed(x)
+        lstm_out, h     = self.lstm(embeds.view(len(x), 1, -1), h)
+        raw_pred        = self.linear(lstm_out.view(len(x), -1))
+        Y               = self.out(raw_pred)
         
-        y = x[1:]
-        x = x[:-1]
+        return Y, h
+    
+    def fit(self, X, h = None):
+        loss = 0
+        for i in range(len(X) - 1):
+            x = torch.tensor(X[i], dtype=torch.long, device=self.device).view(1, 1, -1)
+            y = torch.tensor(X[i+1], dtype=torch.long, device=self.device).view(-1)
+            
+            Y, h = self.forward(x, h)
+            loss += self.loss(Y, y)
+            
+        self.zero_grad()
+        loss.backward(retain_graph=True)
+        nn.utils.clip_grad_norm_(self.parameters(), 1)
+        self.optim.step()
+        h[0].detach()
+        h[1].detach()
         
-        self.train()
-        self.optimizer.zero_grad()
-        x = torch.tensor(x).to(self.device)
-        y = torch.tensor(y).to(self.device)
-        
-        logits, (state_h, state_c) = self.forward(x, h)
-        loss = self.criterion(logits.transpose(1, 2), y)
-
-        state_h = state_h.detach()
-        state_c = state_c.detach()
-
-        loss_value = loss.item()
-
-        loss.backward()
-
-        nn.utils.clip_grad_norm_(self.parameters(), 5)
-
-        self.optimizer.step()
-        
-        return loss_value, (state_h, state_c)
+        return loss.item(), h
     
     def predict(self, x, h = None):
-        if isinstance(h, type(None)):
-            h = self.zero_state(1)
-        
-        x = torch.tensor(x).to(self.device)
-        logits, (state_h, state_c) = self.forward(x, (h[0][:, -1:], h[1][:, -1:]))
-        state_h = state_h.detach()
-        state_c = state_c.detach()
-        
-        _, prediction = logits.topk(self.input_size)
-        
-        return prediction[0, 0].tolist(), (state_h, state_c)
-        
-        
+        with torch.no_grad():
+            x = torch.tensor(x, dtype=torch.long, device=self.device).view(1, 1, -1)
+            Y, h = self.forward(x, h)
+            _, prediction = Y.topk(self.input_dim)
+            return prediction[0].tolist(), h
