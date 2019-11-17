@@ -18,7 +18,7 @@ class Recommender(object):
         self.documents_cache = Cache(documents_n)
         self.persons_cache   = Cache(persons_n)
         self.recs_limit      = recs_limit
-        self.lstm            = LSTM(documents_n, 256, 128)
+        self.lstm            = LSTM(documents_n, 320, 128)
         self.losses          = []
         self.losses_length   = 50
 

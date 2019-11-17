@@ -12,7 +12,7 @@ class LSTM(nn.Module):
         self.device     = device
 
         self.embed      = nn.Embedding(input_dim, embedding_dim)
-        self.lstm       = nn.LSTM(embedding_dim, hidden_dim)
+        self.lstm       = nn.GRU(embedding_dim, hidden_dim)
         self.do         = nn.Dropout(0.1)
         self.linear     = nn.Linear(hidden_dim, input_dim)
         self.out        = nn.LogSoftmax(dim = 1)
@@ -24,10 +24,7 @@ class LSTM(nn.Module):
         
 
     def _init_hidden(self):
-        return (
-            torch.zeros(1, 1, self.hidden_dim, dtype=torch.float, device=self.device),
-            torch.zeros(1, 1, self.hidden_dim, dtype=torch.float, device=self.device)
-        )
+        return torch.zeros(1, 1, self.hidden_dim, dtype=torch.float, device=self.device)
     
     def forward(self, x, h = None):
         if isinstance(h, type(None)):
@@ -55,8 +52,7 @@ class LSTM(nn.Module):
         loss.backward(retain_graph=True)
         nn.utils.clip_grad_norm_(self.parameters(), 5)
         self.optim.step()
-        h[0].detach()
-        h[1].detach()
+        h.detach()
         
         return loss.item(), h
     
