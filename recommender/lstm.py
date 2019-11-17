@@ -53,7 +53,7 @@ class LSTM(nn.Module):
             
         self.zero_grad()
         loss.backward(retain_graph=True)
-        nn.utils.clip_grad_norm_(self.parameters(), 1)
+        nn.utils.clip_grad_norm_(self.parameters(), 5)
         self.optim.step()
         h[0].detach()
         h[1].detach()
