@@ -1,6 +1,8 @@
 # Recom.live — the real-time recommendation system
 This is the core of the recommendation system, wrapped with UDP server daemon, having very simple RPC protocol.
 
+[Real-time Recommendation System: Rolling Feature Matrix](https://towardsdatascience.com/real-time-recommendation-system-rolling-feature-matrix-f5ca701439df?source=friends_link&sk=fac9f6afec75a37265dffded0ab4cb83)
+
 To set up Recom.live server directly onto your physical machine use:
 ```
 git clone https://github.com/grinya007/recomlive.git
