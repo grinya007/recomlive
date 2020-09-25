@@ -2,7 +2,7 @@ import numpy as np
 
 from cache import Cache, Deque
 from collections import namedtuple
-from .lstm import LSTM
+from .rnn import RNN
 from math import log
 
 
@@ -11,16 +11,16 @@ class Recommender(object):
             self,
             documents_n      = 2000,
             persons_n        = 2000,
-            recs_limit       = 10):
+            recs_limit       = 10,
+            device           = 'cuda'
+        ):
 
         self.documents_n     = documents_n
         self.persons_n       = persons_n
         self.documents_cache = Cache(documents_n)
         self.persons_cache   = Cache(persons_n)
         self.recs_limit      = recs_limit
-        self.lstm            = LSTM(documents_n, 320, 128)
-        self.losses          = []
-        self.losses_length   = 50
+        self.lstm            = RNN(documents_n, 320, 128, device)
 
     def person_history(self, person_id):
         prs_res = self.persons_cache.get_by_key(person_id)
@@ -30,8 +30,7 @@ class Recommender(object):
 
     def record(self, document_id, person_id):
         
-        new_doc = lambda: Document(document_id)
-        doc_res = self.documents_cache.get_replace(document_id, new_doc)
+        doc_res = self.documents_cache.get_replace(document_id, None)
 
         new_prs = lambda: Person(person_id, max(self.documents_n / 10, 10))
         prs_res = self.persons_cache.get_replace(person_id, new_prs)
@@ -45,14 +44,8 @@ class Recommender(object):
                 if doc_res != None:
                     inputs.append(doc_res.idx)
             if len(inputs) >= 2:
-                loss, prs_res.value.lstm_h = self.lstm.fit(
-                    inputs, prs_res.value.lstm_h
-                )
+                loss = self.lstm.fit(inputs)
                 prs_res.value.mark_learned(unlearned)
-                self.losses.append(loss)
-                if len(self.losses) >= self.losses_length:
-                    print(np.average(self.losses), flush=True)
-                    self.losses = []
 
 
     def recommend(self, document_id, person_id = None):
@@ -60,15 +53,13 @@ class Recommender(object):
         if doc_res == None:
             return []
 
-        lstm_h = None
         history = {}
         if person_id != None:
             prs_res = self.persons_cache.get_by_key(person_id)
             if prs_res != None:
-                lstm_h = prs_res.value.lstm_h
                 history = prs_res.value.history
 
-        r, _ = self.lstm.predict(doc_res.idx, lstm_h)
+        r = self.lstm.predict(doc_res.idx)
 
         recs = []
         for i in r:
@@ -88,10 +79,6 @@ class Recommender(object):
         
         return recs
 
-
-class Document(object):
-    def __init__(self, did):
-        self.id = did
 
 
 class Person(object):
